@@ -11,14 +11,14 @@ type Invoice = {
   performances: Performance[];
 };
 
-type plays = {
+type Plays = {
   [key: string]: {
     name: string;
-    type: string;
+    type: 'tragedy' | 'comedy';
   };
 };
 
-function statement(invoice: Invoice, plays: plays) {
+function statement(invoice: Invoice, plays: Plays) {
   let totalAmount = 0;
   let volumeCredits = 0;
   let result = `청구 내역 (고객명: ${invoice.customer})\n`;
@@ -61,4 +61,4 @@ function statement(invoice: Invoice, plays: plays) {
   return result;
 }
 
-console.log(statement(invoices[0], plays));
+console.log(statement(invoices[0], plays as Plays));

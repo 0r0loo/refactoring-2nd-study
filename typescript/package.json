@@ -3,7 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "start": "bun src/ch01/original.ts",
+    "start": "bun src/ch01/my-refactoring.ts",
     "test": "bun test"
   },
   "devDependencies": {
