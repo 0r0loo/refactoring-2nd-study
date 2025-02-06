@@ -19,37 +19,9 @@ type Plays = Record<
   }
 >;
 
-const createReceipt = ({
-  invoice,
-  totalAmount,
-  volumeCredits,
-  plays,
-  language = 'ko',
-}: {
-  invoice: Invoice;
-  totalAmount: number;
-  volumeCredits: number;
-  plays: Plays;
-  language?: string;
-}) => {
-  const { customer, performances } = invoice;
-  const content = performances
-    .map((performance) => {
-      const play = plays[performance.playID];
-      const amount = calculateAmount({
-        type: play.type,
-        audience: performance.audience,
-      });
-      return `${play.name}: ${formatAmount({ amount, language })} (${performance.audience}석)`;
-    })
-    .join('\n');
-
-  return `
-청구 내역 (고객명: ${customer})
-${content}
-총액: ${formatAmount({ amount: totalAmount, language })}
-적립 포인트: ${volumeCredits}점`;
-};
+function sum(arr: number[]) {
+  return arr.reduce((acc, cur) => acc + cur, 0);
+}
 
 // 포인트 계산해주는 함수
 const calculateVolumeCredits = ({
@@ -63,22 +35,6 @@ const calculateVolumeCredits = ({
     return Math.max(audience - 30, 0) + Math.floor(audience / 5);
   return Math.max(audience - 30, 0);
 };
-
-// 총 포인트 계산해주는 함수
-const calculateTotalVolumeCredits = (
-  performances: Performance[],
-  plays: Plays,
-) =>
-  performances.reduce((acc, performance) => {
-    const play = plays[performance.playID];
-    return (
-      acc +
-      calculateVolumeCredits({
-        type: play.type,
-        audience: performance.audience,
-      })
-    );
-  }, 0);
 
 // 가격 계산해주는 함수
 function calculateAmount({
@@ -105,23 +61,6 @@ function calculateAmount({
   throw new Error(`알 수 없는 장르: ${type}`);
 }
 
-// 총액 계산해주는 함수
-const calculateTotalAmount = ({
-  performances,
-  plays,
-}: {
-  performances: Performance[];
-  plays: Plays;
-}) =>
-  performances.reduce((acc, performance) => {
-    const play = plays[performance.playID];
-    const amount = calculateAmount({
-      type: play.type,
-      audience: performance.audience,
-    });
-    return acc + amount;
-  }, 0);
-
 // 원화로 변환 해주는 함수
 const convertToKRW = (amount: number) =>
   new Intl.NumberFormat('ko-KR', {
@@ -144,19 +83,29 @@ const formatAmount = ({
 };
 
 function statement(invoice: Invoice, plays: Plays) {
-  const { performances } = invoice;
-  return createReceipt({
-    invoice,
-    totalAmount: calculateTotalAmount({
-      performances: performances,
-      plays,
-    }),
-    volumeCredits: calculateTotalVolumeCredits(performances, plays),
-    plays,
+  const { customer, performances } = invoice;
+  const language = 'ko';
 
-    // 만약 다국어를 지원한다면....
-    language: 'ko',
-  });
+  const content = performances
+    .map((performance) => {
+      const play = plays[performance.playID];
+      const amount = calculateAmount({
+        type: play.type,
+        audience: performance.audience,
+      });
+      return `${play.name}: ${formatAmount({ amount, language })} (${performance.audience}석)`;
+    })
+    .join('\n');
+
+  const calculateArgs = performances.map(performance => ({ type: plays[performance.playID].type, audience: performance.audience }));
+  const totalAmount = sum(calculateArgs.map(calculateAmount));
+  const volumeCredits = sum(calculateArgs.map(calculateVolumeCredits));
+
+  return `
+청구 내역 (고객명: ${customer})
+${content}
+총액: ${formatAmount({ amount: totalAmount, language })}
+적립 포인트: ${volumeCredits}점`;
 }
 
 console.log(statement(invoices[0], plays as Plays));
