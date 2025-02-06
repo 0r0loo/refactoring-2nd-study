@@ -23,39 +23,6 @@ function sum(arr: number[]) {
   return arr.reduce((acc, cur) => acc + cur, 0);
 }
 
-const createReceipt = ({
-  invoice,
-  plays,
-  language = 'ko',
-}: {
-  invoice: Invoice;
-  plays: Plays;
-  language?: string;
-}) => {
-  const { customer, performances } = invoice;
-
-  const content = performances
-    .map((performance) => {
-      const play = plays[performance.playID];
-      const amount = calculateAmount({
-        type: play.type,
-        audience: performance.audience,
-      });
-      return `${play.name}: ${formatAmount({ amount, language })} (${performance.audience}석)`;
-    })
-    .join('\n');
-
-  const calculateArgs = performances.map(performance => ({ type: plays[performance.playID].type, audience: performance.audience }));
-  const totalAmount = sum(calculateArgs.map(calculateAmount));
-  const volumeCredits = sum(calculateArgs.map(calculateVolumeCredits));
-
-  return `
-청구 내역 (고객명: ${customer})
-${content}
-총액: ${formatAmount({ amount: totalAmount, language })}
-적립 포인트: ${volumeCredits}점`;
-};
-
 // 포인트 계산해주는 함수
 const calculateVolumeCredits = ({
   type,
@@ -116,13 +83,29 @@ const formatAmount = ({
 };
 
 function statement(invoice: Invoice, plays: Plays) {
-  return createReceipt({
-    invoice,
-    plays,
+  const { customer, performances } = invoice;
+  const language = 'ko';
 
-    // 만약 다국어를 지원한다면....
-    language: 'ko',
-  });
+  const content = performances
+    .map((performance) => {
+      const play = plays[performance.playID];
+      const amount = calculateAmount({
+        type: play.type,
+        audience: performance.audience,
+      });
+      return `${play.name}: ${formatAmount({ amount, language })} (${performance.audience}석)`;
+    })
+    .join('\n');
+
+  const calculateArgs = performances.map(performance => ({ type: plays[performance.playID].type, audience: performance.audience }));
+  const totalAmount = sum(calculateArgs.map(calculateAmount));
+  const volumeCredits = sum(calculateArgs.map(calculateVolumeCredits));
+
+  return `
+청구 내역 (고객명: ${customer})
+${content}
+총액: ${formatAmount({ amount: totalAmount, language })}
+적립 포인트: ${volumeCredits}점`;
 }
 
 console.log(statement(invoices[0], plays as Plays));
