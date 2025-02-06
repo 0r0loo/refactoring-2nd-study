@@ -25,18 +25,15 @@ function sum(arr: number[]) {
 
 const createReceipt = ({
   invoice,
-  totalAmount,
-  volumeCredits,
   plays,
   language = 'ko',
 }: {
   invoice: Invoice;
-  totalAmount: number;
-  volumeCredits: number;
   plays: Plays;
   language?: string;
 }) => {
   const { customer, performances } = invoice;
+
   const content = performances
     .map((performance) => {
       const play = plays[performance.playID];
@@ -47,6 +44,10 @@ const createReceipt = ({
       return `${play.name}: ${formatAmount({ amount, language })} (${performance.audience}석)`;
     })
     .join('\n');
+
+  const calculateArgs = performances.map(performance => ({ type: plays[performance.playID].type, audience: performance.audience }));
+  const totalAmount = sum(calculateArgs.map(calculateAmount));
+  const volumeCredits = sum(calculateArgs.map(calculateVolumeCredits));
 
   return `
 청구 내역 (고객명: ${customer})
@@ -115,14 +116,8 @@ const formatAmount = ({
 };
 
 function statement(invoice: Invoice, plays: Plays) {
-  const { performances } = invoice;
-
-  const calculateArgs = performances.map(performance => ({ type: plays[performance.playID].type, audience: performance.audience }));
-
   return createReceipt({
     invoice,
-    totalAmount: sum(calculateArgs.map(calculateAmount)),
-    volumeCredits: sum(calculateArgs.map(calculateVolumeCredits)),
     plays,
 
     // 만약 다국어를 지원한다면....
